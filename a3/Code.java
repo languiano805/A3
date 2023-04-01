@@ -1,4 +1,4 @@
-package code;
+package a3;
 
 import java.nio.*;
 import javax.swing.*;
@@ -53,7 +53,9 @@ public class Code extends JFrame implements GLEventListener
 	public Code()
 	{	setTitle("Chapter7 - program 3");
 		setSize(800, 800);
-		myCanvas = new GLCanvas();
+		GLProfile glp = GLProfile.getMaxProgrammableCore(true);
+		GLCapabilities caps = new GLCapabilities(glp);
+		myCanvas = new GLCanvas(caps);
 		myCanvas.addGLEventListener(this);
 		this.add(myCanvas);
 		this.setVisible(true);
@@ -112,7 +114,7 @@ public class Code extends JFrame implements GLEventListener
 
 	public void init(GLAutoDrawable drawable)
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
-		renderingProgram = Utils.createShaderProgram("code/vertShader.glsl", "code/fragShader.glsl");
+		renderingProgram = Utils.createShaderProgram("a3/vertShader.glsl", "a3/fragShader.glsl");
 
 		prevTime = System.currentTimeMillis();
 
