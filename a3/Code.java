@@ -14,7 +14,7 @@ public class Code extends JFrame implements GLEventListener {
 	private GLCanvas myCanvas;
 	private int renderingProgram;
 	private int vao[] = new int[1];
-	private int vbo[] = new int[2];
+	private int vbo[] = new int[4];
 	private float cameraX, cameraY, cameraZ;
 	// private float cubeLocX, cubeLocY, cubeLocZ;
 
@@ -22,6 +22,11 @@ public class Code extends JFrame implements GLEventListener {
 	private float rocketLocX, rocketLocY, rocketLocZ;
 	private int numRocketVertices;
 	private ImportedModel rocket;
+
+	// allocate variables for alien ship
+	private float alienLocX, alienLocY, alienLocZ;
+	private int numAlienVertices;
+	private ImportedModel alien;
 
 	// allocate variables for display() function
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
@@ -97,24 +102,50 @@ public class Code extends JFrame implements GLEventListener {
 
 		gl.glDrawArrays(GL_TRIANGLES, 0, numRocketVertices);
 
+		// draw the alien ship using buffer #1
+		mMat.translation(alienLocX, alienLocY, alienLocZ);
+
+
+		mvMat.identity();
+		mvMat.mul(vMat);
+		mvMat.mul(mMat);
+
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(0);
+
+		gl.glEnable(GL_DEPTH_TEST);
+		gl.glDepthFunc(GL_LEQUAL);
+
+		gl.glDrawArrays(GL_TRIANGLES, 0, numAlienVertices);
+
 	}
 
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		// import models
-		rocket = new ImportedModel("rship.obj");
+		rocket = new ImportedModel("rShip.obj");
+		alien = new ImportedModel("aShip.obj");
 
 		renderingProgram = Utils.createShaderProgram("a3/vertShader.glsl", "a3/fragShader.glsl");
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
-		cameraZ = 8.0f;
+		cameraZ = 14.0f;
 		// cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
 
 		// intialize rocket ship
 		rocketLocX = 0.0f;
 		rocketLocY = 0.0f;
 		rocketLocZ = 0.0f;
+
+		// intialize alien ship
+		alienLocX = 5.0f;
+		alienLocY = 0.0f;
+		alienLocZ = 0.0f;
 	}
 
 	private void setupVertices() {
@@ -158,6 +189,28 @@ public class Code extends JFrame implements GLEventListener {
 			rocketNvalues[i * 3 + 2] = (float) (rocketNormals[i].z());
 		}
 
+		// setting up coords alien ship
+		//
+
+		numAlienVertices = alien.getNumVertices();
+
+		Vector3f[] alienVertices = alien.getVertices();
+		Vector3f[] alienNormals = alien.getNormals();
+
+		float[] alienPvalues = new float[numAlienVertices * 3];
+		float[] alienNvalues = new float[numAlienVertices * 3];
+
+		for (int i = 0; i < numAlienVertices; i++) {
+			alienPvalues[i * 3] = (float) (alienVertices[i].x());
+			alienPvalues[i * 3 + 1] = (float) (alienVertices[i].y());
+			alienPvalues[i * 3 + 2] = (float) (alienVertices[i].z());
+			alienNvalues[i * 3] = (float) (alienNormals[i].x());
+			alienNvalues[i * 3 + 1] = (float) (alienNormals[i].y());
+			alienNvalues[i * 3 + 2] = (float) (alienNormals[i].z());
+		}
+
+		// buffer setup
+		//
 		gl.glGenVertexArrays(vao.length, vao, 0);
 		gl.glBindVertexArray(vao[0]);
 		gl.glGenBuffers(vbo.length, vbo, 0);
@@ -171,6 +224,16 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		FloatBuffer rocketNBuf = Buffers.newDirectFloatBuffer(rocketNvalues);
 		gl.glBufferData(GL_ARRAY_BUFFER, rocketNBuf.limit() * 4, rocketNBuf, GL_STATIC_DRAW);
+
+		// alien ship vertex buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+		FloatBuffer alienPBuf = Buffers.newDirectFloatBuffer(alienPvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, alienPBuf.limit() * 4, alienPBuf, GL_STATIC_DRAW);
+
+		// alien ship normal buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+		FloatBuffer alienNBuf = Buffers.newDirectFloatBuffer(alienNvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, alienNBuf.limit() * 4, alienNBuf, GL_STATIC_DRAW);
 
 	}
 
