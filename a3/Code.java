@@ -1,13 +1,15 @@
 package a3;
 
 import java.nio.*;
-import java.lang.Math;
 import javax.swing.*;
+import java.lang.Math;
 import static com.jogamp.opengl.GL4.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
-import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GLContext;
+import com.jogamp.opengl.util.*;
+import com.jogamp.common.nio.Buffers;
+
 import org.joml.*;
 
 public class Code extends JFrame implements GLEventListener {
@@ -17,6 +19,11 @@ public class Code extends JFrame implements GLEventListener {
 	private int vbo[] = new int[6];
 	private float cameraX, cameraY, cameraZ;
 	// private float cubeLocX, cubeLocY, cubeLocZ;
+
+	// allocate variables for animation
+	private double tf;
+	private double startTime;
+	private double elapsedTime;
 
 	// allocate variables for rocket ship
 	private float rocketLocX, rocketLocY, rocketLocZ;
@@ -42,6 +49,9 @@ public class Code extends JFrame implements GLEventListener {
 	private int mvLoc, pLoc;
 	private float aspect;
 
+	// create a matrix stack for the scene
+	private Matrix4fStack mvStack = new Matrix4fStack(100);
+
 	public Code() {
 		setTitle("Chapter 4 - program 3");
 		setSize(600, 600);
@@ -51,12 +61,16 @@ public class Code extends JFrame implements GLEventListener {
 		myCanvas.addGLEventListener(this);
 		this.add(myCanvas);
 		this.setVisible(true);
+
+		Animator animator = new Animator(myCanvas);
+		animator.start();
 	}
 
 	public void display(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
+		elapsedTime = (System.currentTimeMillis() - startTime) / 1000.0;
 
 		gl.glUseProgram(renderingProgram);
 
@@ -64,89 +78,98 @@ public class Code extends JFrame implements GLEventListener {
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
-
-		vMat.translation(-cameraX, -cameraY, -cameraZ);
-
-		// // draw the cube using buffer #0
-
-		// mMat.translation(cubeLocX, cubeLocY, cubeLocZ);
-
-		// mvMat.identity();
-		// mvMat.mul(vMat);
-		// mvMat.mul(mMat);
-
-		// gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
-		// gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-
-		// gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		// gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-		// gl.glEnableVertexAttribArray(0);
-
-		// gl.glEnable(GL_DEPTH_TEST);
-		// gl.glDepthFunc(GL_LEQUAL);
-
-		// gl.glDrawArrays(GL_TRIANGLES, 0, 36);
-
-		// draw the rocket ship using buffer #0
-		mMat.translation(rocketLocX, rocketLocY, rocketLocZ);
-
-		mvMat.identity();
-		mvMat.mul(vMat);
-		mvMat.mul(mMat);
-
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+		pMat.identity().setPerspective((float) Math.toRadians(50.0f), aspect, 0.1f, 1000.0f);
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+		// initialize time variables
+		
+		tf = elapsedTime % 10.0;
+
+		// push view matrix onto the stack
+		mvStack.pushMatrix();
+		mvStack.translate(-cameraX, -cameraY, -cameraZ);
+
+		// draw the moon using buffer #0
+		//
+		mvStack.pushMatrix();
+		mvStack.translate(moonLocX, moonLocY, moonLocZ);
+
+		//scale the moon to be 3x bigger
+		mvStack.pushMatrix();
+		mvStack.scale(3.0f, 3.0f, 3.0f);
+
+		// rotate the moon
+		mvStack.pushMatrix();
+		mvStack.rotate((float)tf, 0.0f, 1.0f, 0.0f);
+		
+
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 
 		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
 
-		gl.glDrawArrays(GL_TRIANGLES, 0, numRocketVertices);
 
-		// draw the alien ship using buffer #1
-		mMat.translation(alienLocX, alienLocY, alienLocZ);
+		gl.glDrawArrays(GL_TRIANGLES, 0, numMoonVertices);
 
-		// rotate the alien ship
-		mMat.rotate((float) Math.toRadians(90.0f), 0.0f, 1.0f, 0.0f);
+		// pop the stack
+		mvStack.popMatrix();
+		mvStack.popMatrix();
 
-		mvMat.identity();
-		mvMat.mul(vMat);
-		mvMat.mul(mMat);
+		// draw the rocket ship using buffer #2
+		//
+		// rocket orbits the sun
+		mvStack.pushMatrix();
+		mvStack.translate((float) Math.sin(tf)*6.0f, 0.0f, (float) Math.cos(tf)*6.0f);
 
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+		//scale the rocket to me 1/10th the size of the moon
+		mvStack.pushMatrix();
+		mvStack.scale(0.1f, 0.1f, 0.1f);
+
+		// rotate the rocket in the same way it is moving
+		mvStack.pushMatrix();
+		mvStack.rotate(87.0f, (float)Math.sin(tf)*4.0f, 1.0f, (float)Math.cos(tf)*4.0f);
+
+
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
+		gl.glDrawArrays(GL_TRIANGLES, 0, numRocketVertices);
 
-		gl.glDrawArrays(GL_TRIANGLES, 0, numAlienVertices);
+		//pop the stack 
+		mvStack.popMatrix();
+		mvStack.popMatrix();
 
-		// draw the moon using buffer #2
-		mMat.translation(moonLocX, moonLocY, moonLocZ);
 
-		mvMat.identity();
-		mvMat.mul(vMat);
-		mvMat.mul(mMat);
+		// draw the alien ship using buffer #4
+		mvStack.pushMatrix();
+	    mvStack.translate(alienLocX, alienLocY, alienLocZ);
 
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+		// rotate the alien ship
+		mvStack.pushMatrix();
+		mvStack.rotate((float)tf, 0.0f, 1.0f, 0.0f);
+
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
+		gl.glDrawArrays(GL_TRIANGLES, 0, numAlienVertices);
 
-		gl.glDrawArrays(GL_TRIANGLES, 0, numMoonVertices);
+		// pop the stack
+		mvStack.popMatrix();
+		mvStack.popMatrix();
+		mvStack.popMatrix();
+		mvStack.popMatrix();
+		mvStack.popMatrix();
+		
+
 
 	}
 
@@ -161,11 +184,11 @@ public class Code extends JFrame implements GLEventListener {
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
-		cameraZ = 14.0f;
+		cameraZ = 20.0f;
 		// cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
 
 		// intialize rocket ship
-		rocketLocX = 0.0f;
+		rocketLocX = -4.0f;
 		rocketLocY = 0.0f;
 		rocketLocZ = 0.0f;
 
@@ -175,7 +198,7 @@ public class Code extends JFrame implements GLEventListener {
 		alienLocZ = 0.0f;
 
 		// initialize moon location
-		moonLocX = -6.0f;
+		moonLocX = 0.0f;
 		moonLocY = 0.0f;
 		moonLocZ = 0.0f;
 
@@ -268,35 +291,35 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glBindVertexArray(vao[0]);
 		gl.glGenBuffers(vbo.length, vbo, 0);
 
-		// rocket ship vertex buffer
+		// moon vertex buffer
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		FloatBuffer rocketPBuf = Buffers.newDirectFloatBuffer(rocketPvalues);
-		gl.glBufferData(GL_ARRAY_BUFFER, rocketPBuf.limit() * 4, rocketPBuf, GL_STATIC_DRAW);
+		FloatBuffer moonBuf = Buffers.newDirectFloatBuffer(moonPvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, moonBuf.limit() * 4, moonBuf, GL_STATIC_DRAW);
 
-		// rocket ship normal buffer
+		// moon normal buffer
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		FloatBuffer moonNBuf = Buffers.newDirectFloatBuffer(moonNvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, moonNBuf.limit() * 4, moonNBuf, GL_STATIC_DRAW);
+
+		// rocket vertex buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+		FloatBuffer rocketBuf = Buffers.newDirectFloatBuffer(rocketPvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, rocketBuf.limit() * 4, rocketBuf, GL_STATIC_DRAW);
+
+		// rocket normal buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
 		FloatBuffer rocketNBuf = Buffers.newDirectFloatBuffer(rocketNvalues);
 		gl.glBufferData(GL_ARRAY_BUFFER, rocketNBuf.limit() * 4, rocketNBuf, GL_STATIC_DRAW);
 
-		// alien ship vertex buffer
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-		FloatBuffer alienPBuf = Buffers.newDirectFloatBuffer(alienPvalues);
-		gl.glBufferData(GL_ARRAY_BUFFER, alienPBuf.limit() * 4, alienPBuf, GL_STATIC_DRAW);
+		// alien vertex buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+		FloatBuffer alienBuf = Buffers.newDirectFloatBuffer(alienPvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, alienBuf.limit() * 4, alienBuf, GL_STATIC_DRAW);
 
-		// alien ship normal buffer
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+		// alien normal buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
 		FloatBuffer alienNBuf = Buffers.newDirectFloatBuffer(alienNvalues);
 		gl.glBufferData(GL_ARRAY_BUFFER, alienNBuf.limit() * 4, alienNBuf, GL_STATIC_DRAW);
-
-		// moon vertex buffer
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
-		FloatBuffer moonPBuf = Buffers.newDirectFloatBuffer(moonPvalues);
-		gl.glBufferData(GL_ARRAY_BUFFER, moonPBuf.limit() * 4, moonPBuf, GL_STATIC_DRAW);
-
-		// moon normal buffer
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
-		FloatBuffer moonNBuf = Buffers.newDirectFloatBuffer(moonNvalues);
-		gl.glBufferData(GL_ARRAY_BUFFER, moonNBuf.limit() * 4, moonNBuf, GL_STATIC_DRAW);
 
 	}
 
