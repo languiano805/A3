@@ -14,7 +14,7 @@ public class Code extends JFrame implements GLEventListener {
 	private GLCanvas myCanvas;
 	private int renderingProgram;
 	private int vao[] = new int[1];
-	private int vbo[] = new int[4];
+	private int vbo[] = new int[6];
 	private float cameraX, cameraY, cameraZ;
 	// private float cubeLocX, cubeLocY, cubeLocZ;
 
@@ -27,6 +27,11 @@ public class Code extends JFrame implements GLEventListener {
 	private float alienLocX, alienLocY, alienLocZ;
 	private int numAlienVertices;
 	private ImportedModel alien;
+
+	// allocate variables for moon
+	private float moonLocX, moonLocY, moonLocZ;
+	private int numMoonVertices;
+	private ImportedModel moon;
 
 	// allocate variables for display() function
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
@@ -105,6 +110,8 @@ public class Code extends JFrame implements GLEventListener {
 		// draw the alien ship using buffer #1
 		mMat.translation(alienLocX, alienLocY, alienLocZ);
 
+		// rotate the alien ship
+		mMat.rotate((float) Math.toRadians(90.0f), 0.0f, 1.0f, 0.0f);
 
 		mvMat.identity();
 		mvMat.mul(vMat);
@@ -113,7 +120,7 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 
@@ -122,6 +129,25 @@ public class Code extends JFrame implements GLEventListener {
 
 		gl.glDrawArrays(GL_TRIANGLES, 0, numAlienVertices);
 
+		// draw the moon using buffer #2
+		mMat.translation(moonLocX, moonLocY, moonLocZ);
+
+		mvMat.identity();
+		mvMat.mul(vMat);
+		mvMat.mul(mMat);
+
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(0);
+
+		gl.glEnable(GL_DEPTH_TEST);
+		gl.glDepthFunc(GL_LEQUAL);
+
+		gl.glDrawArrays(GL_TRIANGLES, 0, numMoonVertices);
+
 	}
 
 	public void init(GLAutoDrawable drawable) {
@@ -129,6 +155,7 @@ public class Code extends JFrame implements GLEventListener {
 		// import models
 		rocket = new ImportedModel("rShip.obj");
 		alien = new ImportedModel("aShip.obj");
+		moon = new ImportedModel("moon.obj");
 
 		renderingProgram = Utils.createShaderProgram("a3/vertShader.glsl", "a3/fragShader.glsl");
 		setupVertices();
@@ -146,6 +173,12 @@ public class Code extends JFrame implements GLEventListener {
 		alienLocX = 5.0f;
 		alienLocY = 0.0f;
 		alienLocZ = 0.0f;
+
+		// initialize moon location
+		moonLocX = -6.0f;
+		moonLocY = 0.0f;
+		moonLocZ = 0.0f;
+
 	}
 
 	private void setupVertices() {
@@ -209,6 +242,26 @@ public class Code extends JFrame implements GLEventListener {
 			alienNvalues[i * 3 + 2] = (float) (alienNormals[i].z());
 		}
 
+		// setting up coords for moon
+		//
+
+		numMoonVertices = moon.getNumVertices();
+
+		Vector3f[] moonVertices = moon.getVertices();
+		Vector3f[] moonNormals = moon.getNormals();
+
+		float[] moonPvalues = new float[numMoonVertices * 3];
+		float[] moonNvalues = new float[numMoonVertices * 3];
+
+		for (int i = 0; i < numMoonVertices; i++) {
+			moonPvalues[i * 3] = (float) (moonVertices[i].x());
+			moonPvalues[i * 3 + 1] = (float) (moonVertices[i].y());
+			moonPvalues[i * 3 + 2] = (float) (moonVertices[i].z());
+			moonNvalues[i * 3] = (float) (moonNormals[i].x());
+			moonNvalues[i * 3 + 1] = (float) (moonNormals[i].y());
+			moonNvalues[i * 3 + 2] = (float) (moonNormals[i].z());
+		}
+
 		// buffer setup
 		//
 		gl.glGenVertexArrays(vao.length, vao, 0);
@@ -234,6 +287,16 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
 		FloatBuffer alienNBuf = Buffers.newDirectFloatBuffer(alienNvalues);
 		gl.glBufferData(GL_ARRAY_BUFFER, alienNBuf.limit() * 4, alienNBuf, GL_STATIC_DRAW);
+
+		// moon vertex buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+		FloatBuffer moonPBuf = Buffers.newDirectFloatBuffer(moonPvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, moonPBuf.limit() * 4, moonPBuf, GL_STATIC_DRAW);
+
+		// moon normal buffer
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
+		FloatBuffer moonNBuf = Buffers.newDirectFloatBuffer(moonNvalues);
+		gl.glBufferData(GL_ARRAY_BUFFER, moonNBuf.limit() * 4, moonNBuf, GL_STATIC_DRAW);
 
 	}
 
