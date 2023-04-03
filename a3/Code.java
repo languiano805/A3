@@ -148,11 +148,15 @@ public class Code extends JFrame implements GLEventListener {
 
 		// draw the alien ship using buffer #4
 		mvStack.pushMatrix();
-	    mvStack.translate(alienLocX, alienLocY, alienLocZ);
+		mvStack.translate((float) Math.sin(tf*3.0f)*3.0f, (float) Math.cos(tf)*1.0f, 3.0f);
 
 		// rotate the alien ship
 		mvStack.pushMatrix();
 		mvStack.rotate((float)tf, 0.0f, 1.0f, 0.0f);
+
+		//scale the alien ship to be 1/10th the size of the moon
+		mvStack.pushMatrix();
+		mvStack.scale(0.1f, 0.1f, 0.1f);
 
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
 
@@ -168,6 +172,8 @@ public class Code extends JFrame implements GLEventListener {
 		mvStack.popMatrix();
 		mvStack.popMatrix();
 		mvStack.popMatrix();
+		mvStack.popMatrix();
+
 		
 
 
