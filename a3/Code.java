@@ -65,6 +65,102 @@ public class Code extends JFrame implements GLEventListener {
 		this.add(myCanvas);
 		this.setVisible(true);
 
+		//key listeners 
+		//
+
+		//key listenr w to move forward
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_W) {
+					cameraZ = cameraZ - 0.3f;
+				}
+			}
+		});
+
+		//key listener s to move backward
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_S) {
+					cameraZ = cameraZ + 0.3f;
+				}
+			}
+		});
+
+		//key listener a to move left
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_A) {
+					cameraX = cameraX - 0.3f;
+				}
+			}
+		});
+
+		//key listener d to move right
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_D) {
+					cameraX = cameraX + 0.3f;
+				}
+			}
+		});
+
+		//key listener e to move up
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_E) {
+					cameraY = cameraY + 0.3f;
+				}
+			}
+		});
+
+		//key listener q to move down
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_Q) {
+					cameraY = cameraY - 0.3f;
+				}
+			}
+		});
+
+		//key listener up to rotate camera up
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP) {
+					mvStack.rotateX((float) Math.toRadians(-2.0f));
+				}
+			}
+		});
+
+		//key listener down to rotate camera down
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN) {
+					mvStack.rotateX((float) Math.toRadians(2.0f));
+				}
+			}
+		});
+
+		//key listener left to rotate camera left
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_LEFT) {
+					mvStack.rotateY((float) Math.toRadians(-2.0f));
+				}
+			}
+		});
+
+		//key listener right to rotate camera right
+		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent e) {
+				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_RIGHT) {
+					mvStack.rotateY((float) Math.toRadians(2.0f));
+				}
+			}
+		});
+
+		
+		
+
 		Animator animator = new Animator(myCanvas);
 		animator.start();
 	}
