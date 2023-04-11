@@ -48,12 +48,23 @@ public class Code extends JFrame implements GLEventListener {
 	private Matrix4f pMat = new Matrix4f(); // perspective matrix
 	private Matrix4f vMat = new Matrix4f(); // view matrix
 	private Matrix4f mMat = new Matrix4f(); // model matrix
-	private Matrix4f mvMat = new Matrix4f(); // model-view matrix
-	private int mvLoc, pLoc;
+	private Matrix4f invTrMat = new Matrix4f(); // inverse-transpose matrix
+	private int mLoc, pLoc, nLoc, vLoc;
+	private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mdiffLoc, mspecLoc, mshiLoc, mambLoc;
 	private float aspect;
+	
+	//lighting
+	private Vector3f currentLightPos = new Vector3f();
+	private float[] lightPos = new float[3];
+
+	//white light properties 
+	float[] globalAmbient = new float[] { 0.2f, 0.2f, 0.2f, 1.0f };
+	float[] lightAmbient = new float[] { 0.0f, 0.0f, 0.0f, 1.0f };
+	float[] lightDiffuse = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
+	float[] lightSpecular = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	// create a matrix stack for the scene
-	private Matrix4fStack mvStack = new Matrix4fStack(100);
+	private Matrix4fStack mStack = new Matrix4fStack(100);
 
 	public Code() {
 		setTitle("Chapter 4 - program 3");
@@ -126,7 +137,7 @@ public class Code extends JFrame implements GLEventListener {
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP) {
-					mvStack.rotateX((float) Math.toRadians(-2.0f));
+					mStack.rotateX((float) Math.toRadians(-2.0f));
 				}
 			}
 		});
@@ -135,7 +146,7 @@ public class Code extends JFrame implements GLEventListener {
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN) {
-					mvStack.rotateX((float) Math.toRadians(2.0f));
+					mStack.rotateX((float) Math.toRadians(2.0f));
 				}
 			}
 		});
@@ -144,7 +155,7 @@ public class Code extends JFrame implements GLEventListener {
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_LEFT) {
-					mvStack.rotateY((float) Math.toRadians(-2.0f));
+					mStack.rotateY((float) Math.toRadians(-2.0f));
 				}
 			}
 		});
@@ -153,7 +164,7 @@ public class Code extends JFrame implements GLEventListener {
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_RIGHT) {
-					mvStack.rotateY((float) Math.toRadians(2.0f));
+					mStack.rotateY((float) Math.toRadians(2.0f));
 				}
 			}
 		});
@@ -173,8 +184,10 @@ public class Code extends JFrame implements GLEventListener {
 
 		gl.glUseProgram(renderingProgram);
 
-		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
+		mLoc = gl.glGetUniformLocation(renderingProgram, "m_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
+		vLoc = gl.glGetUniformLocation(renderingProgram, "v_matrix");
+		nLoc = gl.glGetUniformLocation(renderingProgram, "norm_matrix");
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.identity().setPerspective((float) Math.toRadians(50.0f), aspect, 0.1f, 1000.0f);
@@ -185,23 +198,23 @@ public class Code extends JFrame implements GLEventListener {
 		tf = elapsedTime % 100;
 
 		// push view matrix onto the stack
-		mvStack.pushMatrix();
-		mvStack.translate(-cameraX, -cameraY, -cameraZ);
+		vMat.translation(-cameraX, -cameraY, -cameraZ);
 
 		// draw the moon using buffer #0
 		//
-		mvStack.pushMatrix();
-		mvStack.translate(moonLocX, moonLocY, moonLocZ);
+		mStack.pushMatrix();
+		mStack.translate(moonLocX, moonLocY, moonLocZ);
 
 		// scale the moon to be 3x bigger
-		mvStack.pushMatrix();
-		mvStack.scale(3.0f, 3.0f, 3.0f);
+		mStack.pushMatrix();
+		mStack.scale(3.0f, 3.0f, 3.0f);
 
 		// rotate the moon
-		mvStack.pushMatrix();
-		mvStack.rotate((float) tf, 0.0f, 1.0f, 0.0f);
+		mStack.pushMatrix();
+		mStack.rotate((float) tf, 0.0f, 1.0f, 0.0f);
 
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
+		gl.glUniformMatrix4fv(mLoc, 1, false, mStack.get(vals));
+		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -210,6 +223,10 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(1);
+
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(2);
 
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_2D, moonTexture);
@@ -220,24 +237,24 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glDrawArrays(GL_TRIANGLES, 0, numMoonVertices);
 
 		// pop the stack
-		mvStack.popMatrix();
-		mvStack.popMatrix();
+		mStack.popMatrix();
+		mStack.popMatrix();
 
 		// draw the rocket ship using buffer #2
 		//
 		// rocket orbits the sun
-		mvStack.pushMatrix();
-		mvStack.translate((float) Math.sin(tf) * 6.0f, 0.0f, (float) Math.cos(tf) * 6.0f);
+		mStack.pushMatrix();
+		mStack.translate((float) Math.sin(tf) * 6.0f, 0.0f, (float) Math.cos(tf) * 6.0f);
 
 		// scale the rocket to me 1/10th the size of the moon
-		mvStack.pushMatrix();
-		mvStack.scale(0.1f, 0.1f, 0.1f);
+		mStack.pushMatrix();
+		mStack.scale(0.1f, 0.1f, 0.1f);
 
 		// rotate the rocket in the same way it is moving
-		mvStack.pushMatrix();
-		mvStack.rotate(87.0f, (float) Math.sin(tf) * 4.0f, 1.0f, (float) Math.cos(tf) * 4.0f);
+		mStack.pushMatrix();
+		mStack.rotate(87.0f, (float) Math.sin(tf) * 4.0f, 1.0f, (float) Math.cos(tf) * 4.0f);
 
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
+		gl.glUniformMatrix4fv(mLoc, 1, false, mStack.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -247,6 +264,10 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(1);
 
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
+		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(2);
+
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_2D, rocketTexture);
 		gl.glUniform1i(gl.glGetUniformLocation(renderingProgram, "texture0"), 0);
@@ -254,22 +275,22 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glDrawArrays(GL_TRIANGLES, 0, numRocketVertices);
 
 		// pop the stack
-		mvStack.popMatrix();
-		mvStack.popMatrix();
+		mStack.popMatrix();
+		mStack.popMatrix();
 
 		// draw the alien ship using buffer #4
-		mvStack.pushMatrix();
-		mvStack.translate((float) Math.sin(tf * 3.0f) * 3.0f, (float) Math.cos(tf) * 1.0f, 3.0f);
+		mStack.pushMatrix();
+		mStack.translate((float) Math.sin(tf * 3.0f) * 3.0f, (float) Math.cos(tf) * 1.0f, 3.0f);
 
 		// rotate the alien ship
-		mvStack.pushMatrix();
-		mvStack.rotate((float) tf, 0.0f, 1.0f, 0.0f);
+		mStack.pushMatrix();
+		mStack.rotate((float) tf, 0.0f, 1.0f, 0.0f);
 
 		// scale the alien ship to be 1/10th the size of the moon
-		mvStack.pushMatrix();
-		mvStack.scale(0.1f, 0.1f, 0.1f);
+		mStack.pushMatrix();
+		mStack.scale(0.1f, 0.1f, 0.1f);
 
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
+		gl.glUniformMatrix4fv(mLoc, 1, false, mStack.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -279,6 +300,10 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(1);
 
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
+		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(2);
+
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_2D, alienTexture);
 		gl.glUniform1i(gl.glGetUniformLocation(renderingProgram, "texture0"), 0);
@@ -286,12 +311,12 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glDrawArrays(GL_TRIANGLES, 0, numAlienVertices);
 
 		// pop the stack
-		mvStack.popMatrix();
-		mvStack.popMatrix();
-		mvStack.popMatrix();
-		mvStack.popMatrix();
-		mvStack.popMatrix();
-		mvStack.popMatrix();
+		mStack.popMatrix();
+		mStack.popMatrix();
+		mStack.popMatrix();
+		mStack.popMatrix();
+		mStack.popMatrix();
+		
 
 	}
 
@@ -329,6 +354,38 @@ public class Code extends JFrame implements GLEventListener {
 		rocketTexture = Utils.loadTexture("iron.jpg");
 		alienTexture = Utils.loadTexture("alienTexture.jpg");
 
+	}
+
+	private void installLights()
+	{
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+
+		//save the light position in a float array
+		lightPos[0] = currentLightPos.x();
+		lightPos[1] = currentLightPos.y();
+		lightPos[2] = currentLightPos.z();
+
+		//get the locations of the light and material fields in the shader
+		globalAmbLoc = gl.glGetUniformLocation(renderingProgram, "globalAmbient");
+		ambLoc = gl.glGetUniformLocation(renderingProgram, "light.ambient");
+		diffLoc = gl.glGetUniformLocation(renderingProgram, "light.diffuse");
+		specLoc = gl.glGetUniformLocation(renderingProgram, "light.specular");
+		posLoc = gl.glGetUniformLocation(renderingProgram, "light.position");
+		mambLoc = gl.glGetUniformLocation(renderingProgram, "material.ambient");
+		mdiffLoc = gl.glGetUniformLocation(renderingProgram, "material.diffuse");
+		mspecLoc = gl.glGetUniformLocation(renderingProgram, "material.specular");
+		mshiLoc = gl.glGetUniformLocation(renderingProgram, "material.shininess");
+
+		//get the locations and material fields in the shader 
+		gl.glProgramUniform3fv(renderingProgram, globalAmbLoc, 1, globalAmbient, 0);
+		gl.glProgramUniform3fv(renderingProgram, ambLoc, 1, lightAmbient, 0);
+		gl.glProgramUniform3fv(renderingProgram, diffLoc, 1, lightDiffuse, 0);
+		gl.glProgramUniform3fv(renderingProgram, specLoc, 1, lightSpecular, 0);
+		gl.glProgramUniform3fv(renderingProgram, posLoc, 1, lightPos, 0);
+		// gl.glProgramUniform3fv(renderingProgram, mambLoc, 1, matAmb, 0);
+		// gl.glProgramUniform3fv(renderingProgram, mdiffLoc, 1, matDif, 0);
+		// gl.glProgramUniform3fv(renderingProgram, mspecLoc, 1, matSpec, 0);
+		// gl.glProgramUniform1f(renderingProgram, mshiLoc, matShi);
 	}
 
 	private void setupVertices() {
