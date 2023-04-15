@@ -52,16 +52,26 @@ public class Code extends JFrame implements GLEventListener {
 	private int mLoc, pLoc, nLoc, vLoc;
 	private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mdiffLoc, mspecLoc, mshiLoc, mambLoc;
 	private float aspect;
-	
-	//lighting
+
+	// lighting
+	private Vector3f intialLightLoc = new Vector3f(5.0f, 2.0f, 2.0f);
 	private Vector3f currentLightPos = new Vector3f();
 	private float[] lightPos = new float[3];
 
-	//white light properties 
-	float[] globalAmbient = new float[] { 0.2f, 0.2f, 0.2f, 1.0f };
-	float[] lightAmbient = new float[] { 0.0f, 0.0f, 0.0f, 1.0f };
+	// white light properties
+	float[] globalAmbient = new float[] { 0.6f, 0.6f, 0.6f, 1.0f };
+	float[] lightAmbient = new float[] { 0.1f, 0.1f, 0.1f, 1.0f };
 	float[] lightDiffuse = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
 	float[] lightSpecular = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
+
+	// gold material properties
+	float[] matAmb = Utils.moonAmbient();
+	float[] matDif = Utils.moonDiffuse();
+	float[] matSpe = Utils.moonSpecular();
+	float matShi = Utils.moonShininess();
+
+	// angle
+	private float angle = 0.1f;
 
 	// create a matrix stack for the scene
 	private Matrix4fStack mStack = new Matrix4fStack(100);
@@ -69,35 +79,37 @@ public class Code extends JFrame implements GLEventListener {
 	public Code() {
 		setTitle("Chapter 4 - program 3");
 		setSize(600, 600);
-		GLProfile glp = GLProfile.getMaxProgrammableCore(true);
+		GLProfile glp = GLProfile.getMaxProgrammable(true);
 		GLCapabilities caps = new GLCapabilities(glp);
 		myCanvas = new GLCanvas(caps);
 		myCanvas.addGLEventListener(this);
 		this.add(myCanvas);
 		this.setVisible(true);
 
-		//key listeners 
+		// key listeners
 		//
 
-		//key listenr w to move forward
+		// key listenr w to move forward
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_W) {
 					cameraZ = cameraZ - 0.3f;
+					
 				}
 			}
 		});
 
-		//key listener s to move backward
+		// key listener s to move backward
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_S) {
 					cameraZ = cameraZ + 0.3f;
+					
 				}
 			}
 		});
 
-		//key listener a to move left
+		// key listener a to move left
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_A) {
@@ -106,7 +118,7 @@ public class Code extends JFrame implements GLEventListener {
 			}
 		});
 
-		//key listener d to move right
+		// key listener d to move right
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_D) {
@@ -115,7 +127,7 @@ public class Code extends JFrame implements GLEventListener {
 			}
 		});
 
-		//key listener e to move up
+		// key listener e to move up
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_E) {
@@ -124,7 +136,7 @@ public class Code extends JFrame implements GLEventListener {
 			}
 		});
 
-		//key listener q to move down
+		// key listener q to move down
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_Q) {
@@ -133,44 +145,45 @@ public class Code extends JFrame implements GLEventListener {
 			}
 		});
 
-		//key listener up to rotate camera up
+		// key listener up to rotate camera up
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP) {
-					mStack.rotateX((float) Math.toRadians(-2.0f));
+					vMat.rotateX((float) Math.toRadians(-2.0f));
+
 				}
 			}
 		});
 
-		//key listener down to rotate camera down
+		// key listener down to rotate camera down
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN) {
-					mStack.rotateX((float) Math.toRadians(2.0f));
+					vMat.rotateX((float) Math.toRadians(2.0f));
+
 				}
 			}
 		});
 
-		//key listener left to rotate camera left
+		// key listener left to rotate camera left
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_LEFT) {
-					mStack.rotateY((float) Math.toRadians(-2.0f));
+					vMat.rotateY((float) Math.toRadians(-2.0f));
+
 				}
 			}
 		});
 
-		//key listener right to rotate camera right
+		// key listener right to rotate camera right
 		myCanvas.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent e) {
 				if (e.getKeyCode() == java.awt.event.KeyEvent.VK_RIGHT) {
-					mStack.rotateY((float) Math.toRadians(2.0f));
+					vMat.rotateY((float) Math.toRadians(2.0f));
+
 				}
 			}
 		});
-
-		
-		
 
 		Animator animator = new Animator(myCanvas);
 		animator.start();
@@ -180,30 +193,34 @@ public class Code extends JFrame implements GLEventListener {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
-		elapsedTime = (System.currentTimeMillis() - startTime) / 1000.0;
-
 		gl.glUseProgram(renderingProgram);
+
+		elapsedTime = (System.currentTimeMillis() - startTime) / 1000.0;
 
 		mLoc = gl.glGetUniformLocation(renderingProgram, "m_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
 		vLoc = gl.glGetUniformLocation(renderingProgram, "v_matrix");
 		nLoc = gl.glGetUniformLocation(renderingProgram, "norm_matrix");
 
-		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.identity().setPerspective((float) Math.toRadians(50.0f), aspect, 0.1f, 1000.0f);
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+		vMat.translation(-cameraX, -cameraY, -cameraZ);
+
+		// gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 
 		// initialize time variables
 
 		tf = elapsedTime % 100;
 
 		// push view matrix onto the stack
-		vMat.translation(-cameraX, -cameraY, -cameraZ);
+
+		mStack.pushMatrix();
+		mStack.translation(-cameraX, -cameraY, -cameraZ);
+
+		
 
 		// draw the moon using buffer #0
 		//
 		mStack.pushMatrix();
-		mStack.translate(moonLocX, moonLocY, moonLocZ);
+		mStack.translation(moonLocX, moonLocY, moonLocZ);
 
 		// scale the moon to be 3x bigger
 		mStack.pushMatrix();
@@ -213,8 +230,23 @@ public class Code extends JFrame implements GLEventListener {
 		mStack.pushMatrix();
 		mStack.rotate((float) tf, 0.0f, 1.0f, 0.0f);
 
+		// install lights
+		currentLightPos.set(intialLightLoc);
+		installLights();
+
+		mStack.invert(invTrMat);
+		invTrMat.transpose(invTrMat);
+
+
+		//change the material type
+		materialType(3);
+
 		gl.glUniformMatrix4fv(mLoc, 1, false, mStack.get(vals));
 		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
+
+		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -229,32 +261,49 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glEnableVertexAttribArray(2);
 
 		gl.glActiveTexture(GL_TEXTURE0);
+
 		gl.glBindTexture(GL_TEXTURE_2D, moonTexture);
 		gl.glUniform1i(gl.glGetUniformLocation(renderingProgram, "texture0"), 0);
 
+		gl.glEnable(GL_CULL_FACE);
+		gl.glFrontFace(GL_CCW);
 		gl.glEnable(GL_DEPTH_TEST);
+		gl.glDepthFunc(GL_LEQUAL);
 
 		gl.glDrawArrays(GL_TRIANGLES, 0, numMoonVertices);
 
 		// pop the stack
 		mStack.popMatrix();
 		mStack.popMatrix();
+		
 
 		// draw the rocket ship using buffer #2
 		//
 		// rocket orbits the sun
 		mStack.pushMatrix();
-		mStack.translate((float) Math.sin(tf) * 6.0f, 0.0f, (float) Math.cos(tf) * 6.0f);
+		mStack.translate((float) Math.cos(tf) * 6.0f, 0.0f, (float) Math.sin(tf) *
+		6.0f);
 
 		// scale the rocket to me 1/10th the size of the moon
 		mStack.pushMatrix();
-		mStack.scale(0.1f, 0.1f, 0.1f);
+		mStack.scale(0.05f, 0.05f, 0.05f);
 
 		// rotate the rocket in the same way it is moving
 		mStack.pushMatrix();
-		mStack.rotate(87.0f, (float) Math.sin(tf) * 4.0f, 1.0f, (float) Math.cos(tf) * 4.0f);
+		mStack.rotate(10.0f, (float) Math.cos(tf) * 4.0f, 0.0f, (float) Math.sin(tf) *-4.0f);
+
+		//change material properties to iron
+		matAmb = Utils.ironAmbient();
+		matDif = Utils.ironDiffuse();
+		matSpe = Utils.ironSpecular();
+		matShi = Utils.ironShininess();
+
+		//change the material type to iron
+		materialType(1);
 
 		gl.glUniformMatrix4fv(mLoc, 1, false, mStack.get(vals));
+		// gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
+		// gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -268,6 +317,8 @@ public class Code extends JFrame implements GLEventListener {
 		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(2);
 
+		// print the normal buffer is bound to
+
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_2D, rocketTexture);
 		gl.glUniform1i(gl.glGetUniformLocation(renderingProgram, "texture0"), 0);
@@ -278,9 +329,10 @@ public class Code extends JFrame implements GLEventListener {
 		mStack.popMatrix();
 		mStack.popMatrix();
 
-		// draw the alien ship using buffer #4
+		// // draw the alien ship using buffer #4
 		mStack.pushMatrix();
-		mStack.translate((float) Math.sin(tf * 3.0f) * 3.0f, (float) Math.cos(tf) * 1.0f, 3.0f);
+		mStack.translate((float) Math.sin(tf * 3.0f) * 3.0f, (float) Math.cos(tf) *
+		1.0f, 3.0f);
 
 		// rotate the alien ship
 		mStack.pushMatrix();
@@ -290,7 +342,12 @@ public class Code extends JFrame implements GLEventListener {
 		mStack.pushMatrix();
 		mStack.scale(0.1f, 0.1f, 0.1f);
 
+		//change material type to alien
+		materialType(2);
+
 		gl.glUniformMatrix4fv(mLoc, 1, false, mStack.get(vals));
+		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
+		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -310,20 +367,22 @@ public class Code extends JFrame implements GLEventListener {
 
 		gl.glDrawArrays(GL_TRIANGLES, 0, numAlienVertices);
 
-		// pop the stack
+		// // pop the stack
 		mStack.popMatrix();
 		mStack.popMatrix();
 		mStack.popMatrix();
 		mStack.popMatrix();
 		mStack.popMatrix();
-		
+		mStack.popMatrix();
+
+		materialType(3);
 
 	}
 
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		// import models
-		rocket = new ImportedModel("rShip.obj");
+		rocket = new ImportedModel("rocketSketchFab.obj");
 		alien = new ImportedModel("aShip.obj");
 		moon = new ImportedModel("moon.obj");
 
@@ -331,7 +390,7 @@ public class Code extends JFrame implements GLEventListener {
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
-		cameraZ = 20.0f;
+		cameraZ = 25.0f;
 		// cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
 
 		// intialize rocket ship
@@ -351,21 +410,23 @@ public class Code extends JFrame implements GLEventListener {
 
 		// textures
 		moonTexture = Utils.loadTexture("moon.jpg");
-		rocketTexture = Utils.loadTexture("iron.jpg");
-		alienTexture = Utils.loadTexture("alienTexture.jpg");
+		rocketTexture = Utils.loadTexture("rShipTex.jpg");
+		alienTexture = Utils.loadTexture("aShipTex.jpg");
+
+		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
+		pMat.identity().setPerspective((float) Math.toRadians(50.0f), aspect, 0.1f, 1000.0f);
 
 	}
 
-	private void installLights()
-	{
+	private void installLights() {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 
-		//save the light position in a float array
+		// save the light position in a float array
 		lightPos[0] = currentLightPos.x();
 		lightPos[1] = currentLightPos.y();
 		lightPos[2] = currentLightPos.z();
 
-		//get the locations of the light and material fields in the shader
+		// get the locations of the light and material fields in the shader
 		globalAmbLoc = gl.glGetUniformLocation(renderingProgram, "globalAmbient");
 		ambLoc = gl.glGetUniformLocation(renderingProgram, "light.ambient");
 		diffLoc = gl.glGetUniformLocation(renderingProgram, "light.diffuse");
@@ -376,41 +437,20 @@ public class Code extends JFrame implements GLEventListener {
 		mspecLoc = gl.glGetUniformLocation(renderingProgram, "material.specular");
 		mshiLoc = gl.glGetUniformLocation(renderingProgram, "material.shininess");
 
-		//get the locations and material fields in the shader 
-		gl.glProgramUniform3fv(renderingProgram, globalAmbLoc, 1, globalAmbient, 0);
+		// get the locations and material fields in the shader
+		gl.glProgramUniform4fv(renderingProgram, globalAmbLoc, 1, globalAmbient, 0);
 		gl.glProgramUniform3fv(renderingProgram, ambLoc, 1, lightAmbient, 0);
-		gl.glProgramUniform3fv(renderingProgram, diffLoc, 1, lightDiffuse, 0);
-		gl.glProgramUniform3fv(renderingProgram, specLoc, 1, lightSpecular, 0);
+		gl.glProgramUniform4fv(renderingProgram, diffLoc, 1, lightDiffuse, 0);
+		gl.glProgramUniform4fv(renderingProgram, specLoc, 1, lightSpecular, 0);
 		gl.glProgramUniform3fv(renderingProgram, posLoc, 1, lightPos, 0);
-		// gl.glProgramUniform3fv(renderingProgram, mambLoc, 1, matAmb, 0);
-		// gl.glProgramUniform3fv(renderingProgram, mdiffLoc, 1, matDif, 0);
-		// gl.glProgramUniform3fv(renderingProgram, mspecLoc, 1, matSpec, 0);
-		// gl.glProgramUniform1f(renderingProgram, mshiLoc, matShi);
+		gl.glProgramUniform4fv(renderingProgram, mambLoc, 1, matAmb, 0);
+		gl.glProgramUniform4fv(renderingProgram, mdiffLoc, 1, matDif, 0);
+		gl.glProgramUniform4fv(renderingProgram, mspecLoc, 1, matSpe, 0);
+		gl.glProgramUniform1f(renderingProgram, mshiLoc, matShi);
 	}
 
 	private void setupVertices() {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-		// float[] cubePositions =
-		// { -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-		// 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-		// 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
-		// 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
-		// 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-		// -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-		// -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-		// -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-		// -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
-		// 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,
-		// -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
-		// 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f
-		// };
-
-		// gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		// FloatBuffer cubeBuf = Buffers.newDirectFloatBuffer(cubePositions);
-		// gl.glBufferData(GL_ARRAY_BUFFER, cubeBuf.limit()*4, cubeBuf, GL_STATIC_DRAW);
-
-		// setting up coords rocket ship
-		//
 
 		numRocketVertices = rocket.getNumVertices();
 
@@ -551,5 +591,34 @@ public class Code extends JFrame implements GLEventListener {
 	}
 
 	public void dispose(GLAutoDrawable drawable) {
+	}
+
+	public void materialType(int x) 
+	{
+		//swithc statement to change material type
+		switch (x) 
+		{
+		case 1:
+			//set material for iron
+			matAmb = Utils.ironAmbient();
+			matDif = Utils.ironDiffuse();
+			matSpe = Utils.ironSpecular();
+			matShi = Utils.ironShininess();
+			break;
+		case 2:
+			//set material for aline ship
+			matAmb = Utils.emeraldAmbient();
+			matDif = Utils.emeraldDiffuse();
+			matSpe = Utils.emeraldSpecular();
+			matShi = Utils.emeraldShininess();
+			break;
+		default:
+			//set material for moon
+			matAmb = Utils.moonAmbient();
+			matDif = Utils.moonDiffuse();
+			matSpe = Utils.moonSpecular();
+			matShi = Utils.moonShininess();
+			break;
+		}
 	}
 }

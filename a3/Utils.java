@@ -385,4 +385,22 @@ public class Utils
 	public static float[] bronzeDiffuse()  { return (new float [] {0.7140f,  0.4284f, 0.1814f, 1} ); }
 	public static float[] bronzeSpecular() { return (new float [] {0.3936f,  0.2719f, 0.1667f, 1} ); }
 	public static float bronzeShininess()  { return 25.6f; }
+
+	//MOON material - ambient, diffuse, specular, and shininess
+	public static float[] moonAmbient()  { return (new float [] {0.5f,  0.5f, 0.5f, 1} ); }
+	public static float[] moonDiffuse()  { return (new float [] {1.0f,  1.0f, 1.0f, 1} ); }
+	public static float[] moonSpecular() { return (new float [] {0.4f,  0.4f, 0.4f, 1} ); }
+	public static float moonShininess()  { return 32.0f; }
+
+	//IRON material - ambient, diffuse, specular, and shininess
+	public static float[] ironAmbient()  { return (new float [] {0.1913f,  0.0735f, 0.0225f, 1} ); }
+	public static float[] ironDiffuse()  { return (new float [] {0.7038f,  0.27048f, 0.0828f, 1} ); }
+	public static float[] ironSpecular() { return (new float [] {0.256777f,  0.137622f, 0.086014f, 1} ); }
+	public static float ironShininess()  { return 12.8f; }
+
+	//EMERALD material - ambient, diffuse, specular, and shininess
+	public static float[] emeraldAmbient()  { return (new float [] {0.0215f,  0.1745f, 0.0215f, 1} ); }
+	public static float[] emeraldDiffuse()  { return (new float [] {0.07568f,  0.61424f, 0.07568f, 1} ); }
+	public static float[] emeraldSpecular() { return (new float [] {0.633f,  0.727811f, 0.633f, 1} ); }
+	public static float emeraldShininess()  { return 76.8f; }
 }

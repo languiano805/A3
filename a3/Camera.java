@@ -1,30 +1,23 @@
 package a3;
 
-import org.joml.Matrix4f;
-import org.joml.Vector4f;
-import org.joml.Vector3f;
+import org.joml.*;
 
 public class Camera {
-    private Vector3f position;
-    private Vector3f defaultU
-    private Vector3f defaultV;
-    private Vector3f defaultN;
     private Vector3f location;
-    private Vector3f defaultLocation;
-    private Vector3f u;
-    private Vector3f v;
-    private Vector3f n;
+    private Vector3f u, v, n;
+    private Matrix4f v_Matrix, rotMatrix, transMatrix;
 
     public Camera() {
-        defaultLocation = new Vector3f(0.0f, 0.0f, 1.0f);
-        defaultU = new Vector3f(1.0f, 0.0f, 0.0f);
-        defaultV = new Vector3f(0.0f, 1.0f, 0.0f);
-        defaultN = new Vector3f(0.0f, 0.0f, 1.0f);
-        location = new Vector3f(defaultLocation);
-        u = new Vector3f(defaultU);
-        v = new Vector3f(defaultV);
-        n = new Vector3f(defaultN);
+        location = new Vector3f(0.0f, 1.5f, 8f);
+        u = new Vector3f(1.0f, 0.0f, 0.0f);
+        v = new Vector3f(0.0f, 1.0f, 0.0f);
+        n = new Vector3f(0.0f, 0.0f, -1.0f);
+        v_Matrix = new Matrix4f();
+        rotMatrix = new Matrix4f();
+        transMatrix = new Matrix4f();
     }
+
+    
 
     
     
